@@ -1,0 +1,1111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Lion's Sky Catcher | Je Parle English</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Lato:wght@400;700&family=Press+Start+2P&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+
+    <style>
+        :root {
+            --blue-deep: #0f172a;
+            --blue-royal: #1e3a8a;
+            --gold-main: #fbbf24;
+            --gold-light: #fcd34d;
+            --gold-dark: #b45309;
+        }
+
+        body {
+            background: radial-gradient(circle at center, var(--blue-royal), var(--blue-deep));
+            color: white;
+            font-family: 'Lato', sans-serif;
+            overflow: hidden;
+            user-select: none;
+            touch-action: none;
+        }
+
+        .font-header { font-family: 'Cinzel', serif; }
+        .retro-font { font-family: 'Press Start 2P', cursive; }
+
+        /* Effects */
+        .scanlines {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0) 50%, rgba(251, 191, 36, 0.05) 50%, rgba(251, 191, 36, 0.05));
+            background-size: 100% 4px; z-index: 50; pointer-events: none;
+        }
+        
+        /* Moving Cloud/Star Background */
+        .stars {
+            position: absolute; width: 100%; height: 100%;
+            background-image: radial-gradient(rgba(255,255,255,0.3) 1px, transparent 1px);
+            background-size: 50px 50px;
+            z-index: -1; animation: starsMove 60s linear infinite;
+        }
+        @keyframes starsMove { from {background-position:0 0;} to {background-position:0 1000px;} }
+
+        /* HUD & Target Word */
+        .target-word-container {
+            display: flex; gap: 8px; justify-content: center;
+            background: rgba(15, 23, 42, 0.8); padding: 10px 20px;
+            border-radius: 99px; border: 2px solid var(--gold-main);
+            box-shadow: 0 0 15px rgba(251, 191, 36, 0.3);
+            margin-top: 5px;
+            min-height: 60px;
+        }
+        .letter-slot {
+            width: 35px; height: 45px; border-bottom: 3px solid #64748b;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.5rem; font-weight: bold; color: #64748b; /* Dim Color */
+            font-family: 'Cinzel', serif; 
+            transition: all 0.3s;
+        }
+        
+        /* The letter they need to catch right now */
+        .letter-slot.active-target {
+            color: transparent; /* Hide text */
+            border-bottom-color: white;
+            transform: scale(1.1);
+            box-shadow: 0 4px 10px rgba(255,255,255,0.2);
+            animation: pulse-target 1s infinite;
+        }
+
+        /* Letter caught */
+        .letter-slot.filled {
+            border-bottom: none; background: var(--gold-main); color: var(--blue-deep);
+            border-radius: 4px; animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 0 10px var(--gold-main);
+        }
+
+        @keyframes popIn { 0% { transform: scale(0); } 100% { transform: scale(1); } }
+        @keyframes pulse-target { 0%, 100% { border-bottom-color: white; } 50% { border-bottom-color: var(--gold-main); } }
+
+        /* Game Objects */
+        .player-lion {
+            position: absolute; bottom: 80px; left: 50%; transform: translateX(-50%);
+            font-size: 70px; z-index: 20; 
+            filter: drop-shadow(0 0 10px rgba(251, 191, 36, 0.5));
+        }
+        .catcher-basket {
+            position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%);
+            width: 60px; height: 20px; background: rgba(251, 191, 36, 0.3);
+            border-radius: 50%; border: 2px solid var(--gold-main);
+        }
+
+        .falling-item {
+            position: absolute; width: 60px; height: 60px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 28px; font-weight: bold; font-family: 'Lato', sans-serif;
+            border-radius: 50%; z-index: 15;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+        .item-good {
+            background: radial-gradient(circle at 30% 30%, #3b82f6, #1e3a8a);
+            border: 2px solid var(--gold-light); color: white;
+        }
+        .item-bad {
+            background: radial-gradient(circle at 30% 30%, #64748b, #334155);
+            border: 2px solid #94a3b8; font-size: 35px; /* Rock emoji size */
+        }
+
+        .particle {
+            position: absolute; width: 8px; height: 8px; background: var(--gold-main);
+            border-radius: 50%; pointer-events: none;
+            box-shadow: 0 0 5px var(--gold-light);
+        }
+
+        /* On-Screen Controls */
+        .control-layer {
+            position: fixed; bottom: 20px; width: 100%;
+            display: flex; justify-content: space-between; padding: 0 20px;
+            z-index: 45; pointer-events: none;
+        }
+        .control-btn {
+            pointer-events: auto;
+            width: 80px; height: 80px;
+            background: rgba(15, 23, 42, 0.6);
+            border: 3px solid var(--gold-main);
+            border-radius: 50%;
+            color: var(--gold-main);
+            font-size: 40px;
+            display: flex; align-items: center; justify-content: center;
+            backdrop-filter: blur(5px);
+            transition: all 0.1s;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            touch-action: manipulation;
+        }
+        .control-btn:active, .control-btn.active {
+            background: var(--gold-main);
+            color: var(--blue-deep);
+            transform: scale(0.95);
+        }
+
+        /* Touch Zones (Invisible backup for ease of use) */
+        .touch-zones {
+            position: fixed; inset: 0; display: flex; z-index: 30;
+        }
+        .touch-left, .touch-right { flex: 1; }
+
+        /* UI Panels */
+        .panel {
+            background: rgba(15, 23, 42, 0.95); border: 2px solid var(--gold-main);
+            box-shadow: 0 0 30px rgba(251, 191, 36, 0.15); backdrop-filter: blur(10px);
+        }
+        .btn-retro {
+            background: linear-gradient(135deg, var(--gold-main), var(--gold-dark));
+            color: var(--blue-deep); border: 2px solid var(--gold-light);
+            border-radius: 8px; transition: all 0.2s; text-transform: uppercase; font-weight: bold; cursor: pointer;
+            font-family: 'Cinzel', serif; letter-spacing: 1px;
+        }
+        .btn-retro:hover { transform: translateY(-2px); box-shadow: 0 6px 12px rgba(251, 191, 36, 0.4); filter: brightness(1.1); }
+        
+        .btn-retro.secondary { 
+            background: rgba(30, 58, 138, 0.6); color: white; border-color: var(--blue-royal); 
+        }
+        .btn-retro.secondary:hover { background: var(--blue-royal); }
+        
+        textarea, input, select { outline: none; transition: border 0.3s; }
+        textarea:focus, input:focus, select:focus { border-color: var(--gold-main); }
+        
+        .saved-badge { display: none; color: var(--gold-light); font-size: 0.7rem; margin-left: 10px; animation: fadeOut 2s forwards; }
+        @keyframes fadeOut { 0% { opacity: 1; } 100% { opacity: 0; } }
+
+        /* Typing Mode Specifics */
+        .input-box {
+            background: rgba(15, 23, 42, 0.8);
+            border: 3px solid var(--gold-main);
+            color: white;
+            font-size: 2rem;
+            text-align: center;
+            border-radius: 12px;
+            padding: 15px;
+            width: 100%;
+            max-width: 400px;
+            font-family: 'Lato', sans-serif;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            box-shadow: 0 0 15px rgba(251, 191, 36, 0.3);
+        }
+        .input-box:focus {
+            box-shadow: 0 0 25px rgba(251, 191, 36, 0.5);
+            outline: none;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="scanlines"></div>
+    <div class="stars"></div>
+
+    <!-- GLOBAL HUD (Visible in both modes) -->
+    <div id="gameHUD" class="fixed top-0 left-0 w-full p-2 md:p-4 flex flex-col items-center z-40 pointer-events-none hidden">
+        <!-- Top Bar -->
+        <div class="w-full flex justify-between items-start max-w-6xl">
+            <div class="flex items-center gap-2 pointer-events-auto">
+                <button onclick="game.reset()" class="bg-blue-900/80 hover:bg-blue-700 p-2 rounded-lg border border-yellow-500/50 backdrop-blur-md transition text-xs font-bold text-yellow-400 flex items-center gap-2">
+                    <i class="fa-solid fa-home"></i> MENU
+                </button>
+                <button onclick="game.toggleSettings()" class="bg-blue-900/80 hover:bg-blue-700 p-2 rounded-lg border border-yellow-500/50 backdrop-blur-md transition text-xs font-bold text-yellow-400 flex items-center gap-2">
+                    <i class="fa-solid fa-gear"></i> SETTINGS
+                </button>
+                <button onclick="game.togglePause()" class="bg-blue-900/80 hover:bg-blue-700 p-2 rounded-lg border border-yellow-500/50 backdrop-blur-md transition text-xs font-bold text-yellow-400 flex items-center gap-2">
+                    <i class="fa-solid fa-pause"></i> PAUSE
+                </button>
+            </div>
+            
+            <div class="flex gap-4 md:gap-8 bg-blue-900/80 p-2 rounded-lg border border-yellow-500/30 backdrop-blur-md">
+                <div class="text-right">
+                    <div class="text-[8px] md:text-[10px] text-yellow-400 uppercase tracking-widest">Score</div>
+                    <div class="text-xl font-bold retro-font text-white" id="scoreDisplay">0000</div>
+                </div>
+                <!-- Lives only for Arcade mode -->
+                <div class="text-right" id="livesContainer">
+                    <div class="text-[8px] md:text-[10px] text-red-400 uppercase tracking-widest">Lives</div>
+                    <div class="text-xl font-bold retro-font text-white flex gap-1" id="livesDisplay">
+                        ❤️❤️❤️
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Target Word Display (Both Modes) -->
+        <div class="mt-4 flex flex-col items-center pointer-events-auto transition-all" id="targetWordWrapper">
+            <div class="text-xs text-yellow-400 uppercase tracking-widest mb-1 font-bold">Goal Word:</div>
+            <div id="targetWordContainer" class="target-word-container transition-all duration-300 mb-2">
+                <!-- Letters injected here -->
+            </div>
+            
+            <!-- Audio Helper Buttons -->
+            <div class="flex gap-3">
+                <button onclick="game.speakCurrentWord()" class="bg-blue-800 hover:bg-blue-700 text-white border border-blue-500 rounded-full px-4 py-2 text-sm font-bold transition flex items-center gap-2 pointer-events-auto shadow-lg active:scale-95">
+                    <i class="fa-solid fa-volume-high text-yellow-400"></i> Say It
+                </button>
+                <button onclick="game.spellCurrentWord()" class="bg-blue-800 hover:bg-blue-700 text-white border border-blue-500 rounded-full px-4 py-2 text-sm font-bold transition flex items-center gap-2 pointer-events-auto shadow-lg active:scale-95">
+                    <i class="fa-solid fa-font text-green-400"></i> Spell It
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- PAUSE OVERLAY -->
+    <div id="pauseOverlay" class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm hidden">
+        <div class="text-center">
+            <h2 class="text-4xl font-bold text-white mb-6 font-header text-gold-gradient tracking-widest">PAUSED</h2>
+            <button onclick="game.togglePause()" class="btn-retro px-8 py-4 text-xl shadow-xl hover:scale-105 transition">RESUME GAME</button>
+        </div>
+    </div>
+
+    <!-- IN-GAME SETTINGS MODAL -->
+    <div id="settingsModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm hidden">
+        <div class="bg-blue-900/95 border-2 border-yellow-500 rounded-2xl p-6 w-full max-w-sm shadow-2xl relative">
+            <h3 class="text-xl font-bold text-center text-yellow-400 font-header mb-6">GAME SETTINGS</h3>
+            
+            <!-- Close Button -->
+            <button onclick="game.toggleSettings()" class="absolute top-3 right-3 text-gray-400 hover:text-white">
+                <i class="fa-solid fa-times text-xl"></i>
+            </button>
+
+            <!-- Sliders -->
+            <div class="space-y-6">
+                <div>
+                    <div class="flex justify-between items-center mb-2">
+                        <label class="text-xs font-bold text-blue-200 uppercase"><i class="fa-solid fa-person-running mr-1"></i> Lion Speed</label>
+                        <span id="speedDisplay" class="text-white retro-font text-xs">Normal</span>
+                    </div>
+                    <input type="range" id="speedInput" min="1" max="5" value="3" oninput="game.updateSpeedUI()" class="w-full h-2 bg-blue-950 rounded-lg cursor-pointer accent-yellow-400">
+                </div>
+
+                <div>
+                    <div class="flex justify-between items-center mb-2">
+                        <label class="text-xs font-bold text-blue-200 uppercase"><i class="fa-solid fa-comment-dots mr-1"></i> Voice Speed</label>
+                        <span id="voiceSpeedDisplay" class="text-white retro-font text-xs">0.9x</span>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <span class="text-lg">🐢</span>
+                        <input type="range" id="voiceSpeedInput" min="0.5" max="1.5" step="0.1" value="0.9" oninput="game.updateVoiceUI()" class="w-full h-2 bg-blue-950 rounded-lg cursor-pointer accent-yellow-400">
+                        <span class="text-lg">🐇</span>
+                    </div>
+                </div>
+            </div>
+
+            <button onclick="game.toggleSettings()" class="mt-8 w-full btn-retro py-3 text-sm">Resume Game</button>
+        </div>
+    </div>
+
+    <!-- Game Environment (Background & Player) -->
+    <div id="gameContainer" class="absolute inset-0 overflow-hidden hidden">
+        <div id="player" class="player-lion">🦁<div class="catcher-basket"></div></div>
+        <!-- Items falling (Arcade only) -->
+        <div id="itemsContainer"></div>
+        
+        <!-- TYPING MODE INTERFACE -->
+        <div id="typingContainer" class="absolute inset-0 flex flex-col items-center justify-center p-4 z-30 hidden">
+            <!-- Main Panel -->
+            <div class="panel max-w-xl w-full p-8 rounded-3xl text-center border-4 border-gold-main shadow-[0_0_50px_rgba(251,191,36,0.2)] flex flex-col items-center gap-6 bg-blue-900/95 relative mt-24">
+                
+                <!-- Audio Controls for Typing Mode -->
+                <div class="flex flex-wrap justify-center gap-4 w-full bg-blue-950/50 p-4 rounded-xl border border-blue-800">
+                    <div class="flex gap-2 w-full justify-center">
+                        <button onclick="game.speakCurrentWord()" class="bg-blue-800 hover:bg-blue-700 text-white border border-blue-500 rounded-full px-4 py-2 text-sm font-bold transition flex items-center gap-2 shadow-lg active:scale-95">
+                            <i class="fa-solid fa-volume-high text-yellow-400"></i> Say It
+                        </button>
+                        <button onclick="game.spellCurrentWord()" class="bg-blue-800 hover:bg-blue-700 text-white border border-blue-500 rounded-full px-4 py-2 text-sm font-bold transition flex items-center gap-2 shadow-lg active:scale-95">
+                            <i class="fa-solid fa-font text-green-400"></i> Spell It
+                        </button>
+                    </div>
+
+                    <!-- Speed Toggle -->
+                    <div class="flex items-center gap-2">
+                        <span class="text-xl cursor-pointer hover:scale-110 transition" onclick="game.setTypingSpeed(0.5)" title="Slow">🐢</span>
+                        <input type="range" id="typingSpeedSlider" min="0.5" max="1.5" step="0.1" value="0.9" class="w-32 accent-yellow-400 cursor-pointer" oninput="game.updateTypingSpeed(this.value)">
+                        <span class="text-xl cursor-pointer hover:scale-110 transition" onclick="game.setTypingSpeed(1.2)" title="Fast">🐇</span>
+                    </div>
+                </div>
+
+                <!-- Input Area -->
+                <div class="w-full relative group">
+                    <p class="text-sm text-blue-200 mb-2 font-bold uppercase tracking-widest">Type the word you hear:</p>
+                    <input type="text" id="typingInput" class="input-box" autocomplete="off" spellcheck="false" onkeydown="if(event.key==='Enter') game.checkTypingAnswer()">
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="w-full flex gap-3">
+                    <button onclick="game.checkTypingAnswer()" class="flex-1 btn-retro py-4 text-xl tracking-widest shadow-xl hover:shadow-yellow-500/20">
+                        CHECK <i class="fa-solid fa-check ml-2"></i>
+                    </button>
+                </div>
+
+                <!-- Progress -->
+                <div class="flex justify-between w-full text-sm text-blue-300 font-mono bg-blue-950/50 px-4 py-2 rounded-full border border-blue-800">
+                    <span>Progress: <span id="typingProgress" class="text-white font-bold">1/10</span></span>
+                    <span>Score: <span id="typingScore" class="text-white font-bold">0</span></span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- On-Screen Controls (Arcade Only) -->
+    <div id="controlsLayer" class="control-layer hidden">
+        <div id="btnLeft" class="control-btn"><i class="fa-solid fa-arrow-left"></i></div>
+        <div id="btnRight" class="control-btn"><i class="fa-solid fa-arrow-right"></i></div>
+    </div>
+
+    <!-- Menu Screen -->
+    <div id="menuScreen" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-blue-950/95 backdrop-blur-sm">
+        <div class="panel max-w-5xl w-full p-4 md:p-8 rounded-xl grid grid-cols-1 md:grid-cols-2 gap-8 relative max-h-[95vh] overflow-y-auto">
+            
+            <!-- Left: Word Management -->
+            <div class="flex flex-col h-full">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-2xl font-bold text-yellow-400 font-header">WORD LIST</h2>
+                    <span id="saveBadge" class="saved-badge">SAVED!</span>
+                </div>
+
+                <div class="flex gap-2 mb-2">
+                    <select id="themeSelect" onchange="game.loadTheme()" class="flex-1 bg-blue-900 border border-blue-700 rounded p-2 text-white text-sm">
+                        <!-- Options populated via JS -->
+                    </select>
+                </div>
+
+                <div class="flex gap-2 mb-4">
+                      <button onclick="game.saveCustomList()" class="flex-1 btn-retro secondary px-2 py-2 text-xs" title="Quick Save (Browser Only)">
+                        <i class="fa-solid fa-floppy-disk mr-2"></i> Save
+                    </button>
+                    <button onclick="game.exportList()" class="flex-1 btn-retro secondary px-2 py-2 text-xs" title="Download as File">
+                        <i class="fa-solid fa-download mr-2"></i> Export
+                    </button>
+                    <button onclick="document.getElementById('fileInput').click()" class="flex-1 btn-retro secondary px-2 py-2 text-xs" title="Load from File">
+                        <i class="fa-solid fa-upload mr-2"></i> Import
+                    </button>
+                    <input type="file" id="fileInput" accept=".txt" class="hidden" onchange="game.importList(this)">
+                </div>
+
+                <textarea id="wordListInput" class="flex-1 bg-blue-950/50 border border-blue-800 rounded p-4 text-green-300 font-mono text-sm resize-none mb-4 focus:bg-blue-900/60 min-h-[200px]" placeholder="Type words here (one per line)..."></textarea>
+                
+                <div class="bg-blue-900/50 p-3 rounded text-xs text-gray-300 hidden md:block border border-blue-800">
+                    <strong>Note:</strong> Words are shuffled automatically every time you start!
+                </div>
+            </div>
+
+            <!-- Right: Play Buttons -->
+            <div class="flex flex-col justify-center border-t md:border-t-0 md:border-l border-blue-800 pt-6 md:pt-0 md:pl-8">
+                
+                <div class="text-center mb-8">
+                    <h1 class="text-3xl md:text-4xl font-header font-bold text-gold-gradient mb-2">LION'S SKY CATCHER</h1>
+                    <p class="text-blue-300 text-sm">Choose your challenge mode:</p>
+                </div>
+
+                <div class="flex flex-col gap-4">
+                    <button onclick="game.start('arcade')" class="btn-retro w-full py-6 text-xl tracking-widest shadow-lg hover:scale-105 transition group relative overflow-hidden">
+                        <div class="absolute inset-0 bg-gradient-to-r from-yellow-500/20 to-transparent opacity-0 group-hover:opacity-100 transition duration-500"></div>
+                        <span class="relative z-10 flex items-center justify-center gap-3">
+                            🦁 ARCADE MODE <span class="text-xs bg-yellow-500 text-black px-2 py-1 rounded">Move</span>
+                        </span>
+                    </button>
+                    
+                    <button onclick="game.start('typing')" class="btn-retro w-full py-6 text-xl tracking-widest shadow-lg hover:scale-105 transition group relative overflow-hidden" style="background: linear-gradient(135deg, #1e3a8a, #0f172a); border-color: #3b82f6;">
+                        <div class="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-transparent opacity-0 group-hover:opacity-100 transition duration-500"></div>
+                        <span class="relative z-10 flex items-center justify-center gap-3">
+                            ⌨️ SPELLING BEE <span class="text-xs bg-blue-500 text-white px-2 py-1 rounded">Type</span>
+                        </span>
+                    </button>
+                </div>
+                
+                <div class="mt-8 text-center text-xs text-gray-400">
+                    <p>Settings can be changed during gameplay.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Game Over / Level Complete Screen -->
+    <div id="endScreen" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-blue-950/95 hidden backdrop-blur-sm">
+        <div class="panel max-w-lg w-full p-8 rounded-xl text-center border-yellow-500 shadow-xl flex flex-col">
+            <h2 id="endTitle" class="text-3xl md:text-4xl font-bold text-yellow-400 mb-2 font-header">LEVEL COMPLETE</h2>
+            <p id="endMessage" class="text-white text-lg mb-6">Great job!</p>
+            
+            <div class="text-4xl font-bold text-white mb-8 retro-font" id="finalScore">0000</div>
+            
+            <div class="flex gap-4">
+                <button onclick="game.reset()" class="btn-retro w-full py-3 bg-white text-blue-900 hover:bg-gray-200" style="background:white; color:black;">
+                    MENU
+                </button>
+                <button onclick="game.restartSame()" class="btn-retro w-full py-3">
+                    PLAY AGAIN
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="fixed bottom-1 w-full text-center pointer-events-none z-30">
+        <span class="text-[10px] text-blue-300 font-bold opacity-50">Je Parle English Games</span>
+    </div>
+
+    <script>
+        /* ================= GAME DATA ================= */
+        const themes = {
+            lion_story: ["Lion", "Frog", "Bed", "Song", "Tap", "Shoes", "Tutu", "Helmet", "Window", "Story", "Scared", "Bat", "Home", "Night", "Monster"],
+            animals: ["Lion","Tiger","Bear","Elephant","Giraffe","Zebra","Panda","Wolf","Fox","Rabbit","Cat","Dog","Horse","Cow","Pig","Sheep","Duck","Monkey","Snake","Eagle"],
+            food: ["Pizza","Burger","Salad","Apple","Banana","Bread","Cheese","Rice","Pasta","Water","Milk","Cake","Cookie","Soup","Egg","Fish","Meat","Fruit","Juice","Candy"],
+            colors: ["Red","Blue","Green","Yellow","Orange","Pink","Purple","Brown","Black","White","Gray","Gold","Silver"]
+        };
+
+        /* ================= ENGINE ================= */
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        
+        const els = {
+            menu: document.getElementById('menuScreen'),
+            endScreen: document.getElementById('endScreen'),
+            gameContainer: document.getElementById('gameContainer'),
+            gameHUD: document.getElementById('gameHUD'),
+            settingsModal: document.getElementById('settingsModal'),
+            pauseOverlay: document.getElementById('pauseOverlay'),
+            livesContainer: document.getElementById('livesContainer'),
+            targetWordWrapper: document.getElementById('targetWordWrapper'),
+            itemsContainer: document.getElementById('itemsContainer'),
+            player: document.getElementById('player'),
+            targetContainer: document.getElementById('targetWordContainer'),
+            score: document.getElementById('scoreDisplay'),
+            lives: document.getElementById('livesDisplay'),
+            finalScore: document.getElementById('finalScore'),
+            wordInput: document.getElementById('wordListInput'),
+            speedInput: document.getElementById('speedInput'),
+            voiceSpeedInput: document.getElementById('voiceSpeedInput'),
+            voiceSpeedDisplay: document.getElementById('voiceSpeedDisplay'),
+            themeSelect: document.getElementById('themeSelect'),
+            controlsLayer: document.getElementById('controlsLayer'),
+            btnLeft: document.getElementById('btnLeft'),
+            btnRight: document.getElementById('btnRight'),
+            endTitle: document.getElementById('endTitle'),
+            endMessage: document.getElementById('endMessage'),
+            // Typing Mode Elements
+            typingContainer: document.getElementById('typingContainer'),
+            typingInput: document.getElementById('typingInput'),
+            typingScore: document.getElementById('typingScore'),
+            typingProgress: document.getElementById('typingProgress'),
+            typingSpeedSlider: document.getElementById('typingSpeedSlider')
+        };
+
+        const state = {
+            mode: 'arcade', // 'arcade' or 'typing'
+            active: false,
+            paused: false,
+            pauseStartTime: 0,
+            score: 0,
+            lives: 3,
+            wordList: [],
+            currentWordIdx: 0,
+            currentWord: "",
+            lettersCaught: 0, 
+            playerPos: 50, 
+            moveLeft: false,
+            moveRight: false,
+            moveSpeed: 1.0, 
+            spawnRate: 1000,
+            lastSpawn: 0,
+            items: [] 
+        };
+
+        const game = {
+            init: () => {
+                // Populate Dropdown
+                els.themeSelect.innerHTML = '';
+                let opt = document.createElement('option');
+                opt.value = 'custom';
+                opt.text = "📝 Custom List";
+                els.themeSelect.add(opt);
+
+                for (const key in themes) {
+                    let opt = document.createElement('option');
+                    opt.value = key;
+                    opt.text = key.charAt(0).toUpperCase() + key.slice(1).replace('_', ' ');
+                    els.themeSelect.add(opt);
+                }
+
+                const saved = localStorage.getItem('skyCatcher_custom');
+                if (saved) {
+                    themes.custom = JSON.parse(saved);
+                } else {
+                    themes.custom = ["Type", "Words", "Here"];
+                }
+                
+                els.themeSelect.value = 'lion_story';
+                game.loadTheme();
+                
+                // Keyboard Inputs
+                window.addEventListener('keydown', (e) => {
+                    if (e.key === 'ArrowLeft') { state.moveLeft = true; els.btnLeft.classList.add('active'); }
+                    if (e.key === 'ArrowRight') { state.moveRight = true; els.btnRight.classList.add('active'); }
+                });
+                window.addEventListener('keyup', (e) => {
+                    if (e.key === 'ArrowLeft') { state.moveLeft = false; els.btnLeft.classList.remove('active'); }
+                    if (e.key === 'ArrowRight') { state.moveRight = false; els.btnRight.classList.remove('active'); }
+                });
+
+                // Visible Button Inputs
+                const handleBtn = (btn, dir, active) => {
+                    if(dir === 'left') state.moveLeft = active;
+                    if(dir === 'right') state.moveRight = active;
+                    if(active) btn.classList.add('active'); else btn.classList.remove('active');
+                };
+
+                // Mouse events for buttons
+                els.btnLeft.addEventListener('mousedown', () => handleBtn(els.btnLeft, 'left', true));
+                document.addEventListener('mouseup', () => handleBtn(els.btnLeft, 'left', false));
+                els.btnRight.addEventListener('mousedown', () => handleBtn(els.btnRight, 'right', true));
+                document.addEventListener('mouseup', () => handleBtn(els.btnRight, 'right', false));
+
+                // Touch events for buttons
+                els.btnLeft.addEventListener('touchstart', (e) => { e.preventDefault(); handleBtn(els.btnLeft, 'left', true); });
+                els.btnLeft.addEventListener('touchend', (e) => { e.preventDefault(); handleBtn(els.btnLeft, 'left', false); });
+                els.btnRight.addEventListener('touchstart', (e) => { e.preventDefault(); handleBtn(els.btnRight, 'right', true); });
+                els.btnRight.addEventListener('touchend', (e) => { e.preventDefault(); handleBtn(els.btnRight, 'right', false); });
+            },
+
+            loadTheme: () => {
+                const theme = els.themeSelect.value;
+                if (theme === 'custom') {
+                    els.wordInput.value = themes.custom.join('\n');
+                } else {
+                    els.wordInput.value = themes[theme].join('\n');
+                }
+            },
+
+            updateSpeedUI: () => { 
+                // Only called when user drags slider
+                state.moveSpeed = parseInt(els.speedInput.value) * 0.4;
+                state.spawnRate = Math.max(500, 1500 - (state.moveSpeed * 300));
+            },
+
+            updateVoiceUI: () => {
+                const val = parseFloat(els.voiceSpeedInput.value);
+                els.voiceSpeedDisplay.innerText = val.toFixed(1) + 'x';
+            },
+
+            updateTypingSpeed: (val) => {
+                // Keep the global setting in sync with the local slider
+                els.voiceSpeedInput.value = val;
+                game.updateVoiceUI();
+            },
+            
+            setTypingSpeed: (val) => {
+                els.typingSpeedSlider.value = val;
+                game.updateTypingSpeed(val);
+            },
+
+            toggleSettings: () => {
+                if (els.settingsModal.classList.contains('hidden')) {
+                    els.settingsModal.classList.remove('hidden');
+                    state.paused = true;
+                } else {
+                    els.settingsModal.classList.add('hidden');
+                    // Only unpause if we weren't manually paused
+                    if (els.pauseOverlay.classList.contains('hidden')) {
+                        state.paused = false;
+                    }
+                }
+            },
+
+            togglePause: () => {
+                state.paused = !state.paused;
+                if (state.paused) {
+                    els.pauseOverlay.classList.remove('hidden');
+                } else {
+                    els.pauseOverlay.classList.add('hidden');
+                }
+            },
+
+            saveCustomList: () => {
+                const raw = els.wordInput.value.trim();
+                if (!raw) return;
+                const arr = raw.split('\n').filter(w => w.trim() !== '');
+                localStorage.setItem('skyCatcher_custom', JSON.stringify(arr));
+                themes.custom = arr;
+                
+                const badge = document.getElementById('saveBadge');
+                badge.style.display = 'inline';
+                badge.style.animation = 'none';
+                badge.offsetHeight; 
+                badge.style.animation = 'fadeOut 2s forwards';
+            },
+
+            exportList: () => {
+                const raw = els.wordInput.value.trim();
+                if (!raw) { alert("Nothing to export!"); return; }
+                const blob = new Blob([raw], { type: "text/plain" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = "My_Vocab_List.txt";
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            },
+
+            importList: (input) => {
+                const file = input.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    els.wordInput.value = e.target.result;
+                    els.themeSelect.value = 'custom';
+                };
+                reader.readAsText(file);
+                input.value = '';
+            },
+
+            start: (mode) => {
+                const raw = els.wordInput.value.trim();
+                if (!raw) { alert("Please enter words!"); return; }
+                
+                state.mode = mode;
+                
+                // Shuffle words
+                const list = raw.split('\n').filter(w => w.trim() !== '').map(w => w.trim().toUpperCase());
+                state.wordList = list.sort(() => Math.random() - 0.5);
+                
+                // Apply Settings
+                state.moveSpeed = parseInt(els.speedInput.value) * 0.4;
+                state.spawnRate = Math.max(500, 1500 - (state.moveSpeed * 300));
+
+                state.score = 0;
+                state.lives = 3;
+                state.currentWordIdx = 0;
+                state.lettersCaught = 0;
+                state.playerPos = 50;
+                state.items.forEach(i => i.el.remove());
+                state.items = [];
+                state.active = true;
+                state.paused = false;
+                state.pauseStartTime = 0;
+
+                // UI Reset
+                els.menu.classList.add('hidden');
+                els.endScreen.classList.add('hidden');
+                els.pauseOverlay.classList.add('hidden');
+                
+                // Ensure Game Container is visible for background elements
+                els.gameContainer.classList.remove('hidden'); 
+                els.gameHUD.classList.remove('hidden');
+                
+                if (state.mode === 'arcade') {
+                    els.controlsLayer.classList.remove('hidden');
+                    els.livesContainer.style.visibility = 'visible';
+                    els.typingContainer.classList.add('hidden');
+                    els.targetWordWrapper.style.visibility = 'visible'; // Show boxes
+                    // Show player
+                    els.player.style.display = 'block';
+                    
+                    game.loadNextWord();
+                    game.updateHUD();
+                    requestAnimationFrame(loop);
+                } else {
+                    // Typing Mode
+                    els.controlsLayer.classList.add('hidden');
+                    els.livesContainer.style.visibility = 'hidden'; // No lives in typing mode
+                    els.typingContainer.classList.remove('hidden');
+                    els.targetWordWrapper.style.visibility = 'hidden'; // Hide boxes, rely on audio
+                    // Hide player in typing mode, keep BG
+                    els.player.style.display = 'none';
+                    
+                    // Sync sliders
+                    els.typingSpeedSlider.value = els.voiceSpeedInput.value;
+                    
+                    game.loadTypingLevel();
+                }
+                
+                game.updateHUD();
+                sfx.playStart();
+            },
+
+            reset: () => {
+                state.active = false;
+                els.menu.classList.remove('hidden');
+                els.endScreen.classList.add('hidden');
+                els.controlsLayer.classList.add('hidden');
+                els.gameContainer.classList.add('hidden');
+                els.gameHUD.classList.add('hidden');
+                els.settingsModal.classList.add('hidden');
+                els.pauseOverlay.classList.add('hidden');
+                window.speechSynthesis.cancel();
+            },
+
+            restartSame: () => {
+                game.start(state.mode);
+            },
+
+            // --- ARCADE LOGIC ---
+
+            loadNextWord: () => {
+                if (state.currentWordIdx >= state.wordList.length) {
+                    game.endGame(true);
+                    return;
+                }
+                
+                state.currentWord = state.wordList[state.currentWordIdx];
+                state.lettersCaught = 0;
+                
+                els.targetContainer.innerHTML = '';
+                for (let i = 0; i < state.currentWord.length; i++) {
+                    const slot = document.createElement('div');
+                    slot.className = 'letter-slot';
+                    slot.innerText = '?'; // HIDDEN initially
+                    if (i === 0) slot.classList.add('active-target');
+                    els.targetContainer.appendChild(slot);
+                }
+
+                game.speakCurrentWord();
+            },
+
+            updateWordDisplay: () => {
+                const slots = els.targetContainer.children;
+                for(let i=0; i<state.currentWord.length; i++) {
+                    slots[i].classList.remove('active-target');
+                    if (i < state.lettersCaught) {
+                        slots[i].innerText = state.currentWord[i]; // Reveal
+                        slots[i].classList.add('filled');
+                        slots[i].style.color = "var(--blue-deep)";
+                    } else if (i === state.lettersCaught) {
+                        slots[i].innerText = '?';
+                        slots[i].classList.add('active-target');
+                        slots[i].style.color = "transparent";
+                    } else {
+                        slots[i].innerText = '?';
+                        slots[i].classList.remove('filled');
+                        slots[i].style.color = "#64748b";
+                    }
+                }
+            },
+
+            spawnItem: () => {
+                if(state.mode !== 'arcade') return;
+
+                let type = 'random';
+                let content = '';
+                const rand = Math.random();
+                const neededLetter = state.currentWord[state.lettersCaught];
+
+                if (rand < 0.4) {
+                    type = 'good';
+                    content = neededLetter;
+                } else if (rand < 0.8) {
+                    type = 'random';
+                    const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+                    content = alphabet[Math.floor(Math.random() * alphabet.length)];
+                } else {
+                    type = 'bad';
+                    content = '🪨';
+                }
+
+                const el = document.createElement('div');
+                el.className = `falling-item ${type === 'bad' ? 'item-bad' : 'item-good'}`;
+                el.innerText = content;
+                
+                const startX = Math.random() * 90;
+                el.style.left = startX + '%';
+                el.style.top = '-60px';
+                
+                els.itemsContainer.appendChild(el);
+
+                state.items.push({
+                    el: el,
+                    x: startX,
+                    y: -60,
+                    type: type,
+                    content: content,
+                    speed: (Math.random() * 2 + 2) * (1 + (state.moveSpeed * 0.2))
+                });
+            },
+
+            updatePhysics: () => {
+                if(state.mode !== 'arcade') return;
+
+                if (state.moveLeft) state.playerPos = Math.max(5, state.playerPos - (1.5 * state.moveSpeed));
+                if (state.moveRight) state.playerPos = Math.min(95, state.playerPos + (1.5 * state.moveSpeed));
+                els.player.style.left = state.playerPos + '%';
+
+                const windowHeight = window.innerHeight;
+                const playerPx = (state.playerPos / 100) * window.innerWidth;
+                const hitY = windowHeight - 100;
+
+                for (let i = state.items.length - 1; i >= 0; i--) {
+                    const item = state.items[i];
+                    if (!item) continue;
+
+                    item.y += item.speed;
+                    item.el.style.transform = `translateY(${item.y}px)`;
+
+                    const itemPx = (item.x / 100) * window.innerWidth;
+                    
+                    if (Math.abs(item.y - hitY) < 40 && Math.abs(itemPx - playerPx) < 50) {
+                        game.handleCollision(item);
+                        item.el.remove();
+                        state.items.splice(i, 1);
+                        continue;
+                    }
+
+                    if (item.y > windowHeight) {
+                        item.el.remove();
+                        state.items.splice(i, 1);
+                    }
+                }
+            },
+
+            handleCollision: (item) => {
+                if (item.type === 'bad') {
+                    sfx.playBad();
+                    state.lives--;
+                    state.score = Math.max(0, state.score - 50);
+                    game.shakeScreen();
+                    if (state.lives <= 0) game.endGame(false);
+                } else {
+                    const needed = state.currentWord[state.lettersCaught];
+                    if (item.content === needed) {
+                        sfx.playGood();
+                        state.lettersCaught++;
+                        state.score += 20;
+                        game.createParticles();
+                        
+                        if (state.lettersCaught >= state.currentWord.length) {
+                            state.score += 100;
+                            sfx.playWin();
+                            state.currentWordIdx++;
+                            state.items.forEach(i => i.el.remove());
+                            state.items = [];
+                            game.loadNextWord();
+                        }
+                    } else {
+                        sfx.playMiss();
+                    }
+                }
+                game.updateWordDisplay();
+                game.updateHUD();
+            },
+
+            // --- TYPING MODE LOGIC ---
+            loadTypingLevel: () => {
+                if (state.currentWordIdx >= state.wordList.length) {
+                    game.endGame(true);
+                    return;
+                }
+                
+                state.currentWord = state.wordList[state.currentWordIdx];
+                els.typingInput.value = '';
+                els.typingInput.focus();
+                els.typingScore.innerText = state.score;
+                els.typingProgress.innerText = `${state.currentWordIdx + 1} / ${state.wordList.length}`;
+                
+                game.speakCurrentWord();
+            },
+
+            checkTypingAnswer: () => {
+                const input = els.typingInput.value.trim().toUpperCase();
+                
+                if (input === state.currentWord) {
+                    sfx.playWin();
+                    state.score += 100;
+                    game.updateHUD();
+                    els.typingScore.innerText = state.score;
+                    els.typingInput.style.borderColor = "#00E676";
+                    game.createParticles();
+                    setTimeout(() => {
+                        els.typingInput.style.borderColor = "#fbbf24";
+                        state.currentWordIdx++;
+                        game.loadTypingLevel();
+                    }, 800);
+                } else {
+                    sfx.playBad();
+                    game.shakeScreen();
+                    els.typingInput.style.borderColor = "#ef4444";
+                    els.typingInput.classList.add('animate-pulse');
+                    setTimeout(() => {
+                        els.typingInput.style.borderColor = "#fbbf24";
+                        els.typingInput.classList.remove('animate-pulse');
+                    }, 500);
+                }
+            },
+
+            // --- SHARED UTILS ---
+            speakCurrentWord: () => {
+                if (!state.currentWord) return;
+                window.speechSynthesis.cancel();
+                // Ensure lowercase so it's read as a word, not acronym
+                const text = state.currentWord.toLowerCase();
+                const utterance = new SpeechSynthesisUtterance(text);
+                const rate = parseFloat(els.voiceSpeedInput.value);
+                utterance.rate = rate;
+                window.speechSynthesis.speak(utterance);
+            },
+
+            spellCurrentWord: () => {
+                if (!state.currentWord) return;
+                window.speechSynthesis.cancel();
+                const rate = parseFloat(els.voiceSpeedInput.value);
+                
+                // Convert letters to lowercase so standard TTS reads "a" instead of "capital a"
+                const letters = state.currentWord.toLowerCase().split('');
+                
+                letters.forEach(letter => {
+                    const u = new SpeechSynthesisUtterance(letter);
+                    u.rate = rate * 0.8;
+                    window.speechSynthesis.speak(u);
+                });
+                
+                // Say full word at end
+                const uWord = new SpeechSynthesisUtterance(state.currentWord.toLowerCase());
+                uWord.rate = rate;
+                window.speechSynthesis.speak(uWord);
+            },
+
+            shakeScreen: () => {
+                document.body.style.transform = "translate(5px, 5px)";
+                setTimeout(() => document.body.style.transform = "translate(-5px, -5px)", 50);
+                setTimeout(() => document.body.style.transform = "none", 100);
+            },
+
+            createParticles: () => {
+                // Center particles in middle of screen for typing mode
+                const startX = state.mode === 'arcade' ? state.playerPos + '%' : '50%';
+                const startY = state.mode === 'arcade' ? '100px' : '50%';
+
+                const el = document.createElement('div');
+                el.style.position = 'absolute';
+                el.style.left = startX;
+                el.style.bottom = startY;
+                els.gameContainer.appendChild(el);
+
+                for(let i=0; i<5; i++) {
+                    const p = document.createElement('div');
+                    p.className = 'particle';
+                    const angle = Math.random() * Math.PI * 2;
+                    const dist = Math.random() * 50;
+                    p.style.transition = 'all 0.5s ease-out';
+                    el.appendChild(p);
+                    requestAnimationFrame(() => {
+                        p.style.transform = `translate(${Math.cos(angle)*dist}px, ${Math.sin(angle)*dist}px)`;
+                        p.style.opacity = 0;
+                    });
+                }
+                setTimeout(() => el.remove(), 500);
+            },
+
+            updateHUD: () => {
+                els.score.innerText = state.score.toString().padStart(4, '0');
+                let hearts = '';
+                for(let i=0; i<state.lives; i++) hearts += '❤️';
+                els.lives.innerHTML = hearts;
+            },
+
+            endGame: (win) => {
+                state.active = false;
+                els.controlsLayer.classList.add('hidden');
+                els.typingContainer.classList.add('hidden'); 
+                els.gameHUD.classList.add('hidden');
+                
+                els.endTitle.innerText = win ? "ALL WORDS COMPLETE!" : "GAME OVER";
+                els.endTitle.className = win ? "text-3xl md:text-4xl font-bold text-green-400 mb-2 font-header" : "text-3xl md:text-4xl font-bold text-red-500 mb-2 font-header";
+                els.endMessage.innerText = win ? "You are a Vocabulary Master!" : "Keep practicing!";
+                els.finalScore.innerText = state.score;
+                
+                els.endScreen.classList.remove('hidden');
+            }
+        };
+
+        let lastTime = 0;
+        function loop(timestamp) {
+            if (!state.active) return;
+            
+            // Handle Pause Logic
+            if (state.paused) {
+                if (!state.pauseStartTime) state.pauseStartTime = timestamp;
+                requestAnimationFrame(loop);
+                return;
+            }
+
+            // Resume logic
+            if (state.pauseStartTime) {
+                const duration = timestamp - state.pauseStartTime;
+                state.lastSpawn += duration;
+                state.pauseStartTime = 0;
+            }
+            
+            if (timestamp - state.lastSpawn > state.spawnRate) {
+                game.spawnItem();
+                state.lastSpawn = timestamp;
+            }
+
+            game.updatePhysics();
+            requestAnimationFrame(loop);
+        }
+
+        const sfx = {
+            playGood: () => {
+                if(audioCtx.state === 'suspended') audioCtx.resume();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain); gain.connect(audioCtx.destination);
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(600, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(1000, audioCtx.currentTime + 0.1);
+                gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.1);
+                osc.start(); osc.stop(audioCtx.currentTime + 0.1);
+            },
+            playBad: () => {
+                if(audioCtx.state === 'suspended') audioCtx.resume();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain); gain.connect(audioCtx.destination);
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+                osc.frequency.linearRampToValueAtTime(50, audioCtx.currentTime + 0.3);
+                gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.3);
+                osc.start(); osc.stop(audioCtx.currentTime + 0.3);
+            },
+            playMiss: () => {
+                if(audioCtx.state === 'suspended') audioCtx.resume();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain); gain.connect(audioCtx.destination);
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(200, audioCtx.currentTime);
+                gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
+                gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.1);
+                osc.start(); osc.stop(audioCtx.currentTime + 0.1);
+            },
+            playWin: () => {
+                if(audioCtx.state === 'suspended') audioCtx.resume();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain); gain.connect(audioCtx.destination);
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(400, audioCtx.currentTime);
+                osc.frequency.linearRampToValueAtTime(800, audioCtx.currentTime + 0.2);
+                gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.4);
+                osc.start(); osc.stop(audioCtx.currentTime + 0.4);
+            },
+            playStart: () => {
+                if(audioCtx.state === 'suspended') audioCtx.resume();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain); gain.connect(audioCtx.destination);
+                osc.frequency.setValueAtTime(300, audioCtx.currentTime);
+                osc.frequency.linearRampToValueAtTime(600, audioCtx.currentTime + 0.3);
+                gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.3);
+                osc.start(); osc.stop(audioCtx.currentTime + 0.3);
+            }
+        };
+
+        game.init();
+
+    </script>
+</body>
+</html>
+
